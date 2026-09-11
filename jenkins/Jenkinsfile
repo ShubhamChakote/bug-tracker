@@ -36,13 +36,27 @@ pipeline {
                         # Create the Go module cache directory
 
                         go test -v ./... 2>&1 | go-junit-report > test-results.xml
-                        # Download dependencies and run all Go tests
+                        # Download dependencies and run all Go tests and produce report
+
+                        go test -coverprofile=coverage.out -covermode=atomic ./...
+                        go tool cover -html=coverage.out -o coverage.html
+                        #Generate coverage report and covert out file to html
+
+                        mkdir -p reports
+                        mv coverage.html reports/
+                        #create directory and moves report to it
+
                     '''
                 }
             }
             post{
                 always{
                     junit 'bugtracker-backend/test-results.xml'
+                    publishHTML target: [
+                        reportDir: 'bugtracker-backend/reports',
+                        reportFiles: 'coverage.html',
+                        reportName: 'Backend coverage report'
+                    ]
                 }
             }
 
@@ -64,7 +78,7 @@ pipeline {
                     '''
                 }
             }
-            post //post runs after all steps so mostly we do reporting in this
+            post //post runs after all steps so mostly we do publish reporting in this
             {
                 always //always tag make sure it runs all the time irrespective of stage/pipeline status ie pass or fail
                 {
