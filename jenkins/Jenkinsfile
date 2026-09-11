@@ -1,18 +1,36 @@
 pipeline {
-    agent any
+    agent any  // Run the pipeline on any available Jenkins agent/node
 
     stages {
-        stage('Unit Tests - Backend') {
-            agent{
-                docker{
-                    image 'snakee/golang-junit:1.21' // adding docker image as it required go and junit for running the tests
-                    reuseNode true //this ensures it uses image throughout the jenkins pipeline
-                    args '-u root'
+        stage('Unit Tests - Backend') {  // Define a stage specifically for backend unit tests
+
+            agent {
+                docker {
+                    image 'snakee/golang-junit:1.21'
+                    // Use the Go + JUnit Docker image as the environment for this stage
+
+                    reuseNode true
+                    // Use the same Jenkins node and existing workspace instead of creating a new workspace
                 }
             }
+
+            environment {
+                GOCACHE = "${WORKSPACE}/.cache/go-build"
+                // Tell Go to store its build cache inside the Jenkins workspace.
+                // This avoids the permission problem with /.cache/go-build
+            }
+
             steps {
-                dir('bugtracker-backend'){
-                    sh 'go test -v ./...'
+                dir('bugtracker-backend') {
+                    // Change the working directory to the backend project folder
+
+                    sh '''
+                        mkdir -p "$GOCACHE"
+                        // Create the Go cache directory if it does not already exist
+
+                        go test -v ./...
+                        // Run all Go tests recursively with verbose output
+                    '''
                 }
             }
         }
