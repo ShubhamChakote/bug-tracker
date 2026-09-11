@@ -1,35 +1,39 @@
 pipeline {
-    agent any  // Run the pipeline on any available Jenkins agent/node
+    agent any
 
     stages {
-        stage('Unit Tests - Backend') {  // Define a stage specifically for backend unit tests
-
+        stage('Unit Tests - Backend') {
             agent {
                 docker {
                     image 'snakee/golang-junit:1.21'
-                    // Use the Go + JUnit Docker image as the environment for this stage
+                    // Use the Go + JUnit Docker image for backend tests
 
                     reuseNode true
-                    // Use the same Jenkins node and existing workspace instead of creating a new workspace
+                    // Reuse the same Jenkins node and workspace
                 }
             }
 
             environment {
                 GOCACHE = "${WORKSPACE}/.cache/go-build"
-                // Tell Go to store its build cache inside the Jenkins workspace.
-                // This avoids the permission problem with /.cache/go-build
+                // Store Go's build cache in the Jenkins workspace
+
+                GOMODCACHE = "${WORKSPACE}/.cache/go-mod"
+                // Store downloaded Go modules in the Jenkins workspace
             }
 
             steps {
                 dir('bugtracker-backend') {
-                    // Change the working directory to the backend project folder
+                    // Move into the backend project directory
 
                     sh '''
                         mkdir -p "$GOCACHE"
-                        # Create the Go cache directory if it does not already exist
+                        # Create the Go build cache directory
+
+                        mkdir -p "$GOMODCACHE"
+                        # Create the Go module cache directory
 
                         go test -v ./...
-                        # Run all Go tests recursively with verbose output
+                        # Download dependencies and run all Go tests
                     '''
                 }
             }
