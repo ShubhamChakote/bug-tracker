@@ -24,6 +24,7 @@ pipeline {
             }
 
             steps {
+
                 dir('bugtracker-backend') {
                     // Move into the backend project directory
 
@@ -34,11 +35,17 @@ pipeline {
                         mkdir -p "$GOMODCACHE"
                         # Create the Go module cache directory
 
-                        go test -v ./...
+                        go test -v ./... 2&1 | go-unit-report > test-results.xml
                         # Download dependencies and run all Go tests
                     '''
                 }
             }
+            post{
+                always{
+                    junit 'bugtracker-backend/test-results.xml'
+                }
+            }
+
         }
         stage('Unit Tests - Frontend')
         {
