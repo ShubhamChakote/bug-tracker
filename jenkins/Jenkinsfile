@@ -7,6 +7,7 @@ pipeline {
                 docker{
                     image 'snakee/golang-junit:1.21' // adding docker image as it required go and junit for running the tests
                     reuseNode true //this ensures it uses image throughout the jenkins pipeline
+                    args '-u root'
                 }
             }
             steps {
