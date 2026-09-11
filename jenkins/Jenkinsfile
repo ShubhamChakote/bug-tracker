@@ -2,95 +2,113 @@ pipeline {
     agent any
 
     stages {
-        stage('Unit Tests - Backend')
-        {
 
-            agent {
-                docker {
-                    image 'snakee/golang-junit:1.21'
-                    // Use the Go + JUnit Docker image for backend tests
+        stage('Execute Unit Tests') {
+            parallel {
 
-                    reuseNode true
-                    // Reuse the same Jenkins node and workspace
+                stage('Unit Tests - Backend') {
+
+                    agent {
+                        docker {
+                            image 'snakee/golang-junit:1.21'
+                            // Use the Go + JUnit Docker image for backend tests
+
+                            reuseNode true
+                            // Reuse the same Jenkins node and workspace
+                        }
+                    }
+
+                    environment {
+                        GOCACHE = "${WORKSPACE}/.cache/go-build"
+                        // Store Go's build cache in the Jenkins workspace
+
+                        GOMODCACHE = "${WORKSPACE}/.cache/go-mod"
+                        // Store downloaded Go modules in the Jenkins workspace
+                    }
+
+                    steps {
+
+                        dir('bugtracker-backend') {
+                            // Move into the backend project directory
+
+                            sh '''
+                                mkdir -p "$GOCACHE"
+                                # Create the Go build cache directory
+
+                                mkdir -p "$GOMODCACHE"
+                                # Create the Go module cache directory
+
+                                go test -v ./... 2>&1 | go-junit-report > test-results.xml
+                                # Run all Go tests and produce a JUnit report
+
+                                go test -coverprofile=coverage.out -covermode=atomic ./...
+                                # Run Go tests and generate the coverage data file
+
+                                go tool cover -html=coverage.out -o coverage.html
+                                # Convert the coverage data file into an HTML report
+
+                                mkdir -p reports
+                                # Create the reports directory
+
+                                mv coverage.html reports/
+                                # Move the coverage report into the reports directory
+                            '''
+                        }
+                    }
+
+                    post {
+                        always {
+                            junit 'bugtracker-backend/test-results.xml'
+
+                            publishHTML target: [
+                                reportDir: 'bugtracker-backend/reports',
+                                reportFiles: 'coverage.html',
+                                reportName: 'Backend coverage report'
+                            ]
+                        }
+                    }
                 }
-            }
 
-            environment {
-                GOCACHE = "${WORKSPACE}/.cache/go-build"
-                // Store Go's build cache in the Jenkins workspace
+                stage('Unit Tests - Frontend') {
 
-                GOMODCACHE = "${WORKSPACE}/.cache/go-mod"
-                // Store downloaded Go modules in the Jenkins workspace
-            }
+                    agent {
+                        docker {
+                            image 'node:20-alpine'
+                            reuseNode true
+                        }
+                    }
 
-            steps {
+                    steps {
 
-                dir('bugtracker-backend') {
-                    // Move into the backend project directory
+                        dir('bugtracker-frontend') {
 
-                    sh '''
-                        mkdir -p "$GOCACHE"
-                        # Create the Go build cache directory
+                            sh '''
+                                npm ci
+                                # Install dependencies using the lock file
 
-                        mkdir -p "$GOMODCACHE"
-                        # Create the Go module cache directory
+                                npm test
+                                # Run frontend unit tests
 
-                        go test -v ./... 2>&1 | go-junit-report > test-results.xml
-                        # Download dependencies and run all Go tests and produce report
+                                mkdir -p reports
+                                # Create the reports directory
 
-                        go test -coverprofile=coverage.out -covermode=atomic ./...
-                        go tool cover -html=coverage.out -o coverage.html
-                        #Generate coverage report and covert out file to html
+                                mv coverage reports/
+                                # Move the coverage report into the reports directory
+                            '''
+                        }
+                    }
 
-                        mkdir -p reports
-                        mv coverage.html reports/
-                        #create directory and moves report to it
+                    post {
+                        always {
+                            junit 'bugtracker-frontend/test-results.xml'
 
-                    '''
-                }
-            }
-            post{
-                always{
-                    junit 'bugtracker-backend/test-results.xml'
-                    publishHTML target: [
-                        reportDir: 'bugtracker-backend/reports',
-                        reportFiles: 'coverage.html',
-                        reportName: 'Backend coverage report'
-                    ]
-                }
-            }
-
-        }
-        stage('Unit Tests - Frontend')
-        {
-            agent{
-                docker{
-                    image 'node:20-alpine'
-                    reuseNode true
-                }
-            }
-            steps{
-                dir('bugtracker-frontend'){
-
-                    sh '''
-                        npm ci
-                        npm test
-                        mkdir -p reports
-                        mv coverage reports/
-                    '''
-                }
-            }
-            post //post runs after all steps so mostly we do publish reporting in this
-            {
-                always //always tag make sure it runs all the time irrespective of stage/pipeline status ie pass or fail
-                {
-                    junit 'bugtracker-frontend/test-results.xml'
-                    publishHTML target: [
-                                    reportDir: 'bugtracker-frontend/reports/coverage',
-                                    reportFiles: 'index.html',
-                                    reportName: 'Frontend coverage report'
-                    ]
-
+                            publishHTML target: [
+                                reportDir: 'bugtracker-frontend/reports/coverage',
+                                reportFiles: 'index.html',
+                                reportName: 'Frontend coverage report'
+                            ]
+                        }
+                    }
                 }
             }
         }
