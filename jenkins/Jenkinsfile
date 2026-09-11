@@ -57,6 +57,13 @@ pipeline {
                     '''
                 }
             }
+            post //post runs after all steps so mostly we do reporting in this
+            {
+                always //always tag make sure it runs all the time irrespective of stage/pipeline status ie pass or fail
+                {
+                    junit 'bugtracker-frontend/test-results.xml'
+                }
+            }
         }
     }
 }
