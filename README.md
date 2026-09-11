@@ -53,7 +53,7 @@ go mod download
 
 # Run the application
 go run cmd/bugtracker/main.go
-```
+``` 
 
 The backend API will be available at http://localhost:8080
 
