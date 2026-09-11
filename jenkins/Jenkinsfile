@@ -26,10 +26,10 @@ pipeline {
 
                     sh '''
                         mkdir -p "$GOCACHE"
-                        // Create the Go cache directory if it does not already exist
+                        # Create the Go cache directory if it does not already exist
 
                         go test -v ./...
-                        // Run all Go tests recursively with verbose output
+                        # Run all Go tests recursively with verbose output
                     '''
                 }
             }
