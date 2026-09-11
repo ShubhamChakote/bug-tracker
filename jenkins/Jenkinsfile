@@ -3,6 +3,12 @@ pipeline {
 
     stages {
         stage('Unit Tests - Backend') {
+            agent{
+                docker{
+                    image 'snakee/golang-junit:1.21' // adding docker image as it required go and junit for running the tests
+                    reuseNode true //this ensures it uses image throughout the jenkins pipeline
+                }
+            }
             steps {
                 dir('bugtracker-backend'){
                     sh 'go test -v ./...'
